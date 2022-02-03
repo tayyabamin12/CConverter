@@ -2,13 +2,17 @@ package com.challenge.cconverter.ui.main
 
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Toast
+import androidx.recyclerview.widget.GridLayoutManager
+import com.challenge.cconverter.data.api.ApiHelper
+import com.challenge.cconverter.data.api.ApiServiceImpl
+import com.challenge.cconverter.data.model.Quotes
 import com.challenge.cconverter.data.utils.CommonUtils
 import com.challenge.cconverter.databinding.MainFragmentBinding
 
@@ -18,10 +22,9 @@ class MainFragment : Fragment() {
         fun newInstance() = MainFragment()
     }
 
-    private lateinit var viewModel: MainViewModel
+    private lateinit var mainViewModel: MainViewModel
     private var _binding: MainFragmentBinding? = null
     private val binding get() = _binding!!
-    private var myCurrency: String = "AED"
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -31,35 +34,55 @@ class MainFragment : Fragment() {
         _binding = MainFragmentBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        setSpinner()
+        setupDocsObserver()
+        mainViewModel.getRecord(requireContext())
 
+        setRecyclerView()
         return root
     }
 
     private fun setupViewModel() {
-        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+        mainViewModel = ViewModelProvider(this,
+            ViewModelFactory(ApiHelper(ApiServiceImpl())))
+                .get(MainViewModel::class.java)
     }
 
-    private fun setSpinner() {
-        val currencySpinner = binding.currencySpinner
-        val num = CommonUtils.currencyList()
+    private fun setupDocsObserver() {
+        mainViewModel.getCurrencyResponse().observe(viewLifecycleOwner, {
+            if (it != null) {
+                Log.d("defghi", it.toString())
+                setSpinner(it.quotes)
+            }
+        })
+    }
+
+    private fun setSpinner(quotes: Quotes) {
+        val spinner = binding.dowIndexText
+        val currencyList = Array(CommonUtils.currencyList().size) {i -> CommonUtils.currencyList()[i] }
 
         val adapter = ArrayAdapter(requireContext(),
-            android.R.layout.simple_spinner_dropdown_item, num)
-        currencySpinner.setAdapter(adapter)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            android.R.layout.simple_spinner_dropdown_item, currencyList)
+        spinner.setAdapter(adapter)
 
-        currencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-
-            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
-                myCurrency = num[p2]
-                Toast.makeText(requireContext(), num[p2], Toast.LENGTH_SHORT).show()
+        spinner.onItemClickListener =
+            AdapterView.OnItemClickListener { p0, p1, p2, p3 ->
+                getAllCurrencyRecord(currencyList[p2])
             }
-
-            override fun onNothingSelected(p0: AdapterView<*>?) {
-
-            }
-        }
     }
 
+    private fun getAllCurrencyRecord(s: String) {
+        val value = 1.0
+        mainViewModel.convertCurrencies(requireContext(), s, value)
+    }
+
+    private fun setRecyclerView() {
+        binding.rvCurrencies.layoutManager = GridLayoutManager(context,3)
+        val adapterView = context?.let { RecyclerAdapter(it) }
+        binding.rvCurrencies.adapter = adapterView
+
+        //add data
+        val currencyList = Array(CommonUtils.currencyList().size) {i -> CommonUtils.currencyList()[i] }
+
+        adapterView?.setDataList(currencyList)
+    }
 }

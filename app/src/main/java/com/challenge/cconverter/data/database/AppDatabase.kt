@@ -7,7 +7,6 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.challenge.cconverter.data.database.constants.DBConstants
 import com.challenge.cconverter.data.database.dao.CurrencyDao
-import com.challenge.cconverter.data.database.entity.Currency
 import com.challenge.cconverter.data.model.ResponseCurrency
 
 @TypeConverters(DataConverter::class)
